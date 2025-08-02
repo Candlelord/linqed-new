@@ -5,6 +5,7 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { SuiProviders } from '@/components/sui-providers'
 import { Providers } from './providers'
+import DeeplinkHandler from '@/components/deeplink-handler'
 
 export const metadata: Metadata = {
   title: 'SUI Wallet App',
@@ -30,7 +31,10 @@ html {
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <SuiProviders>{children}</SuiProviders>
+          <SuiProviders>
+            <DeeplinkHandler />
+            {children}
+          </SuiProviders>
         </Providers>
       </body>
     </html>
