@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import ThemeToggle from '@/components/theme-toggle'
 import './globals.css'
 import { SuiProviders } from '@/components/sui-providers'
 import { Providers } from './providers'
@@ -31,7 +32,10 @@ html {
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <SuiProviders>{children}</SuiProviders>
+          <SuiProviders>{children}
+              <div className="fixed bottom-4 right-4 z-50">
+                <ThemeToggle />
+              </div></SuiProviders>
         </Providers>
       </body>
     </html>
