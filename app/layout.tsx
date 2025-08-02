@@ -31,12 +31,7 @@ html {
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <SuiProviders>
-            <Suspense fallback={null}>
-              <DeeplinkHandler />
-            </Suspense>
-            {children}
-          </SuiProviders>
+          <SuiProviders>{children}</SuiProviders>
         </Providers>
       </body>
     </html>
