@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
@@ -32,7 +32,9 @@ html {
       <body suppressHydrationWarning>
         <Providers>
           <SuiProviders>
-            <DeeplinkHandler />
+            <Suspense fallback={null}>
+              <DeeplinkHandler />
+            </Suspense>
             {children}
           </SuiProviders>
         </Providers>
