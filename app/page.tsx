@@ -2,12 +2,13 @@
 
 import React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, ArrowDownLeft, Clock, LogOut } from "lucide-react"
+import { ArrowUpRight, ArrowDownLeft, Clock, LogOut, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useSuiWallet } from "@/hooks/use-sui-wallet"
 import { SuiWalletConnect } from "@/components/sui-wallet-connect"
 import { useDisconnectWallet } from "@mysten/dapp-kit"
+import RecentTransactions from "@/components/recent-transactions"
 
 export default function HomePage() {
   const router = useRouter()
@@ -75,6 +76,14 @@ export default function HomePage() {
                 <ArrowDownLeft className="w-4 h-4 mr-2" />
                 Receive
               </Button>
+              <Button
+                variant="outline"
+                className="flex-1 max-w-[120px]"
+                onClick={() => router.push("/buy")}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Buy
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -83,53 +92,8 @@ export default function HomePage() {
         <div className="mb-4">
           <h3 className="text-lg font-medium mb-3">Recent Transactions</h3>
         </div>
-
-        <Card>
-          <CardContent className="p-0">
-            {transactions.length > 0 ? (
-              transactions.map((tx, index) => (
-                <div
-                  key={tx.id}
-                  className={`flex items-center justify-between p-4 ${
-                    index !== transactions.length - 1 ? "border-b" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        tx.type === "received" ? "bg-green-100" : "bg-red-100"
-                      }`}
-                    >
-                      {tx.type === "received" ? (
-                        <ArrowDownLeft className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <ArrowUpRight className="w-5 h-5 text-red-600" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">{tx.description}</div>
-                      <div className="text-xs text-gray-500">{tx.time}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`font-medium text-sm ${
-                        tx.type === "received" ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {tx.amount}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-gray-500">
-                <Clock className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-sm">No transactions yet</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        
+        <RecentTransactions />
       </div>
     </div>
   )

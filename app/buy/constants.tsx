@@ -1,0 +1,3 @@
+export const PACKAGE_ID = "0x867fd03ce79162c45449bd4fccc47d383acd843e2676c91f70705aea1706a4eb"; 
+export const NAIRA_TYPE = "0x867fd03ce79162c45449bd4fccc47d383acd843e2676c91f70705aea1706a4eb::naira::NAIRA";
+export const RECIPIENT = "0xb2b8384b9fb145e4f364d90cd8f6638238cbb1924d50bf441f9d4eb0ec7e91b7";

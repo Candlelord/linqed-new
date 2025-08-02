@@ -12,6 +12,26 @@ export function SuiWalletConnect() {
   const wallets = useWallets()
   const { mutate: connect } = useConnectWallet()
 
+  // Handle pending deeplinks when wallet connects
+  useEffect(() => {
+    if (account) {
+      const pendingDeeplink = localStorage.getItem('pendingDeeplink')
+      if (pendingDeeplink) {
+        try {
+          const { params, timestamp } = JSON.parse(pendingDeeplink)
+          // Check if deeplink is still valid (10 minutes)
+          if (Date.now() - timestamp < 10 * 60 * 1000) {
+            const searchParams = new URLSearchParams(params)
+            router.push(`/?${searchParams.toString()}`)
+          }
+        } catch (error) {
+          console.error('Error processing pending deeplink:', error)
+        }
+        localStorage.removeItem('pendingDeeplink')
+      }
+    }
+  }, [account, router])
+
   // Debug: log available wallets
   useEffect(() => {
     console.log('Available wallets:', wallets)
