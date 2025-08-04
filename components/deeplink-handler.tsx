@@ -4,7 +4,7 @@ import { useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSuiWallet } from '@/hooks/use-sui-wallet'
 import { useSignAndExecuteTransaction } from '@mysten/dapp-kit'
-import { Transaction } from '@mysten/sui/transactions'
+import { TransactionBlock } from '@mysten/sui.js/transactions'
 import { toast } from 'sonner'
 import { PACKAGE_ID, RECIPIENT } from '@/app/buy/constants'
 
@@ -29,9 +29,9 @@ export default function DeeplinkHandler() {
   const toMist = useCallback((sui: number) => Math.floor(sui * 1_000_000_000), [])
   const toNairaUnits = useCallback((naira: number) => Math.floor(naira * 1_000_000_000), [])
 
-  const buildTransaction = useCallback((params: DeeplinkTransaction): Transaction | null => {
+  const buildTransaction = useCallback((params: DeeplinkTransaction): TransactionBlock | null => {
     try {
-      const txb = new Transaction()
+      const txb = new TransactionBlock()
 
       switch (params.action) {
         case 'buy': {
@@ -167,7 +167,7 @@ export default function DeeplinkHandler() {
       signAndExecute(
         { transaction: txb.serialize() },
         {
-          onSuccess: (result) => {
+          onSuccess: (result: { digest: string }) => {
             toast.success('Transaction successful!', {
               description: `TX: ${result.digest.slice(0, 8)}...`,
             })
@@ -190,7 +190,7 @@ export default function DeeplinkHandler() {
               description: `TX: ${result.digest.slice(0, 8)}...`,
             })
           },
-          onError: (error) => {
+          onError: (error: Error) => {
             toast.error('Transaction failed', {
               description: error.message,
             })

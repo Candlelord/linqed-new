@@ -60,8 +60,8 @@ export default function BuyPage() {
   // Convert SUI to Naira
   const convertToNaira = (suiAmount: number) => {
     if (!exchangeRate) return "Loading..."
-    const nairaAmount = suiAmount * exchangeRate
-    return `₦${nairaAmount.toLocaleString("en-NG", { maximumFractionDigits: 2 })}`
+    const nairaAmount = Math.round((suiAmount * exchangeRate) / 10) * 10 // nearest ₦10
+    return `₦${nairaAmount.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`
   }
 
   // Helper: get amount in MIST (1 SUI = 1_000_000_000 MIST)
@@ -152,7 +152,7 @@ export default function BuyPage() {
         onSuccess: (result: { digest: string }) => {
           // Add transaction to local state for UI update
           const description = `Bought ${item} water package with ${currency}`
-          const amount = currency === "SUI" ? suiAmount : (suiAmount * (exchangeRate || 0))
+          const amount = currency === "SUI" ? suiAmount : suiAmount
           addTransaction("sent", amount, description, currency)
           
           alert("Purchase successful! TX: " + result.digest)
@@ -207,7 +207,7 @@ return (
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => handleBuy("100ml", 0.00053823, "NGN")}
+                onClick={() => handleBuy("100ml", exchangeRate ? Math.round((0.1 * exchangeRate)/10)*10 : 0, "NGN") }
                 disabled={loading}
               >
                 <span className="mr-2">₦</span>
@@ -238,7 +238,7 @@ return (
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => handleBuy("200ml", 0.107646, "NGN")}
+                onClick={() => handleBuy("200ml", exchangeRate ? Math.round((0.2 * exchangeRate)/10)*10 : 0, "NGN") }
                 disabled={loading}
               >
                 <span className="mr-2">₦</span>
