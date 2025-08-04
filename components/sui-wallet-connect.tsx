@@ -4,9 +4,15 @@ import { ConnectButton, useCurrentAccount, useConnectWallet, useWallets } from '
 import { Wallet, Check } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { useEffect } from 'react'
 
 export function SuiWalletConnect() {
+  const [mounted, setMounted] = useState(false)
+  // Ensure client-side rendering only to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const account = useCurrentAccount()
   const router = useRouter()
   const wallets = useWallets()
@@ -44,6 +50,11 @@ export function SuiWalletConnect() {
       router.push('/')
     }
   }, [account, router])
+
+  if (!mounted) {
+    // Render nothing on the server; component will mount on client
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

@@ -229,8 +229,8 @@ export default function SendPage() {
     : (currency === 'SUI' ? balance.toFixed(4) : nairaBalance.toFixed(2))
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="sticky top-0 bg-white border-b">
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b">
         <div className="flex items-center px-4 py-4">
           <Button
             variant="ghost"
@@ -328,19 +328,19 @@ export default function SendPage() {
                   value={sendForm.note}
                   onChange={(e) => setSendForm({ ...sendForm, note: e.target.value })}
                   placeholder="What's this for?"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               {/* Transaction Result */}
               {txResult && (
-                <Card className={`${txResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <Card className={`${txResult.success ? 'bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700'}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
                       {txResult.success ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <CheckCircle className="w-5 h-5 text-success" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-600" />
+                        <XCircle className="w-5 h-5 text-error" />
                       )}
                       <span className={`font-medium ${txResult.success ? 'text-green-800' : 'text-red-800'}`}>
                         {txResult.success ? 'Success!' : 'Error'}
@@ -366,11 +366,11 @@ export default function SendPage() {
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Network fee</span>
+                      <span className="text-muted-foreground">Network fee</span>
                       <span>~0.001 SUI</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Remaining</span>
+                      <span className="text-muted-foreground">Remaining</span>
                       <span>{remainingBalance} {currency}</span>
                     </div>
                   </div>
