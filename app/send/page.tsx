@@ -29,13 +29,16 @@ export default function SendPage() {
     amount: "",
     note: "",
   })
+  
+
 
   // Handle deeplink parameters
   useEffect(() => {
     const amountParam = searchParams.get('amount')
     const recipientParam = searchParams.get('recipient')
+    const currencyParam = searchParams.get('currency')
     
-    if (amountParam || recipientParam) {
+    if (amountParam || recipientParam || currencyParam) {
       setSendForm(prev => {
         const updates: Partial<typeof prev> = {}
         
@@ -221,6 +224,8 @@ export default function SendPage() {
     }
   }
 
+
+
   const remainingBalance = sendForm.amount
     ? (currency === 'SUI' 
         ? (balance - Number.parseFloat(sendForm.amount || "0") - 0.001).toFixed(4)
@@ -248,153 +253,164 @@ export default function SendPage() {
         <Card>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Recipient Address
-                </label>
-                <input
-                  type="text"
-                  value={sendForm.recipient}
-                  onChange={(e) => setSendForm({ ...sendForm, recipient: e.target.value })}
-                  placeholder="0x1234567890abcdef..."
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    sendForm.recipient && !isValidSuiAddress(sendForm.recipient) 
-                      ? 'border-red-300 bg-red-50' 
-                      : ''
-                  }`}
-                  required
-                />
-                {sendForm.recipient && !isValidSuiAddress(sendForm.recipient) && (
-                  <p className="text-xs text-red-600 mt-1">
-                    Invalid Sui address format. Address should start with 0x and be 66 characters long.
-                  </p>
-                )}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Recipient Address
+                  </label>
+                  <input
+                    type="text"
+                    value={sendForm.recipient}
+                    onChange={(e) => setSendForm({ ...sendForm, recipient: e.target.value })}
+                    placeholder="0x..."
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Amount
-                </label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        value={sendForm.amount}
-                        onChange={(e) => {
-                          setSendForm({ ...sendForm, amount: e.target.value })
-                          setNairaAmount(null) // Reset conversion display when amount changes
-                        }}
-                        placeholder={currency === 'SUI' ? "0.0000" : "0.00"}
-                        step={currency === 'SUI' ? "0.0001" : "0.01"}
-                        min="0"
-                        max={currency === 'SUI' ? balance - 0.001 : nairaBalance}
-                        className="w-full px-3 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                      <span className="absolute right-3 top-2.5 text-gray-500">{currency}</span>
-                    </div>
-                    <Button
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-medium">Currency</span>
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
                       type="button"
-                      variant="outline"
-                      onClick={handleConvertToNaira}
-                      disabled={!sendForm.amount || convertLoading}
-                      className="whitespace-nowrap"
+                      onClick={() => setCurrency('SUI')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        currency === 'SUI'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                     >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${convertLoading ? 'animate-spin' : ''}`} />
-                      {currency === 'SUI' ? 'Convert to ₦' : 'Convert to SUI'}
-                    </Button>
+                      SUI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrency('NAIRA')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        currency === 'NAIRA'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      NAIRA
+                    </button>
                   </div>
-                  {nairaAmount && (
-                    <div className="text-sm text-gray-500">
-                      Estimated value: {nairaAmount}
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    Available: {currency === 'SUI' 
-                      ? (balanceLoading ? "..." : `${balance.toFixed(4)} SUI`)
-                      : (nairaBalanceLoading ? "Loading NAIRA..." : nairaBalanceError ? "Error loading NAIRA" : `${nairaBalance.toFixed(2)} NAIRA`)
-                    }
-                  </p>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Note (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={sendForm.note}
-                  onChange={(e) => setSendForm({ ...sendForm, note: e.target.value })}
-                  placeholder="What's this for?"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              {/* Transaction Result */}
-              {txResult && (
-                <Card className={`${txResult.success ? 'bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700'}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      {txResult.success ? (
-                        <CheckCircle className="w-5 h-5 text-success" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-error" />
-                      )}
-                      <span className={`font-medium ${txResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                        {txResult.success ? 'Success!' : 'Error'}
-                      </span>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Amount
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          value={sendForm.amount}
+                          onChange={(e) => {
+                            setSendForm({ ...sendForm, amount: e.target.value })
+                            setNairaAmount(null)
+                          }}
+                          placeholder={currency === 'SUI' ? "0.0000" : "0.00"}
+                          step={currency === 'SUI' ? "0.0001" : "0.01"}
+                          min="0"
+                          max={currency === 'SUI' ? balance - 0.001 : nairaBalance}
+                          className="w-full px-3 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                        <span className="absolute right-3 top-2.5 text-gray-500">{currency}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleConvertToNaira}
+                        disabled={!sendForm.amount || convertLoading}
+                        className="whitespace-nowrap"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${convertLoading ? 'animate-spin' : ''}`} />
+                        {currency === 'SUI' ? 'Convert to ₦' : 'Convert to SUI'}
+                      </Button>
                     </div>
-                    <p className={`text-sm ${txResult.success ? 'text-green-700' : 'text-red-700'}`}>
-                      {txResult.message}
-                    </p>
-                    {txResult.txId && (
-                      <p className="text-xs text-green-600 mt-2 font-mono break-all">
-                        TX: {txResult.txId}
-                      </p>
+                    {nairaAmount && (
+                      <div className="text-sm text-gray-500">
+                        Estimated value: {nairaAmount}
+                      </div>
                     )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {isFormValid && !txResult && (
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <h3 className="font-medium text-center mb-3">Transaction Summary</h3>
-                  <div className="text-center text-2xl font-light mb-3">
-                    {sendForm.amount} {currency}
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Network fee</span>
-                      <span>~0.001 SUI</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Remaining</span>
-                      <span>{remainingBalance} {currency}</span>
-                    </div>
+                    <p className="text-xs text-gray-500">
+                      Available: {currency === 'SUI' 
+                        ? (balanceLoading ? "..." : `${balance.toFixed(4)} SUI`)
+                        : (nairaBalanceLoading ? "Loading NAIRA..." : nairaBalanceError ? "Error loading NAIRA" : `${nairaBalance.toFixed(2)} NAIRA`)
+                      }
+                    </p>
                   </div>
                 </div>
-              )}
 
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!isFormValid || loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  {loading ? "Sending..." : "Send"}
-                </Button>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={sendForm.note}
+                    onChange={(e) => setSendForm({ ...sendForm, note: e.target.value })}
+                    placeholder="Add a note..."
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {txResult && (
+                  <div className={`p-4 rounded-lg flex items-center gap-3 ${
+                    txResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                  }`}>
+                    {txResult.success ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {txResult.success ? 'Transaction Successful!' : 'Transaction Failed'}
+                      </p>
+                      <p className="text-sm opacity-90">{txResult.message}</p>
+                      {txResult.txId && (
+                        <p className="text-xs mt-1 font-mono break-all">
+                          TX: {txResult.txId}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span>Remaining Balance:</span>
+                    <span className="font-medium">
+                      {remainingBalance} {currency}
+                    </span>
+                  </div>
+                  {currency === 'SUI' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      *Includes ~0.001 SUI gas fee
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    className="flex-1"
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={!isFormValid || loading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {loading ? "Sending..." : "Send"}
+                  </Button>
+                </div>
             </form>
           </CardContent>
         </Card>

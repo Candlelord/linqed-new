@@ -38,6 +38,8 @@ export default function BuyPage() {
   const [loading, setLoading] = useState(false)
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
   const [rateLoading, setRateLoading] = useState(true)
+  
+
 
   // Fetch current SUI to NGN exchange rate
   useEffect(() => {
@@ -67,6 +69,8 @@ export default function BuyPage() {
   // Helper: get amount in MIST (1 SUI = 1_000_000_000 MIST)
   const toMist = (sui: number) => Math.floor(sui * 1_000_000_000)
   const toNairaUnits = (naira: number) => Math.floor(naira * 1_000_000_000)
+
+
 
 
   // Main buy handler
