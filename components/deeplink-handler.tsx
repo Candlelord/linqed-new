@@ -36,26 +36,48 @@ export default function DeeplinkHandler() {
     // Debug logging
     console.log('=== DEEPLINK DEBUG ===')
     console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A')
+    console.log('Hash:', typeof window !== 'undefined' ? window.location.hash : 'N/A')
     console.log('Search params:', searchParams?.toString())
-    console.log('All available params:')
-    if (searchParams) {
-      for (const [key, value] of searchParams.entries()) {
-        console.log(`  ${key}: ${value}`)
-      }
-    }
     console.log('======================')
 
-    if (!searchParams) return
-
-    const params: DeeplinkTransaction = {
-      action: searchParams.get('action') as 'buy' | 'send' | 'receive',
-      package: searchParams.get('package') as '100ml' | '200ml' | undefined,
-      currency: searchParams.get('currency')?.toUpperCase() as 'SUI' | 'NGN' | undefined,
-      amount: searchParams.get('amount') || undefined,
-      recipient: searchParams.get('recipient') || undefined,
+    let params: DeeplinkTransaction = {
+      action: null as any,
+      package: undefined,
+      currency: undefined,
+      amount: undefined,
+      recipient: undefined,
     }
 
-    if (!params.action) return
+    // First try to get from URL hash (for Slush wallet)
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.substring(1) // Remove the # symbol
+      if (hash) {
+        const hashParams = new URLSearchParams(hash)
+        params.action = hashParams.get('action') as 'buy' | 'send' | 'receive'
+        params.package = hashParams.get('package') as '100ml' | '200ml' | undefined
+        params.currency = hashParams.get('currency')?.toUpperCase() as 'SUI' | 'NGN' | undefined
+        params.amount = hashParams.get('amount') || undefined
+        params.recipient = hashParams.get('recipient') || undefined
+        
+        console.log('Hash params found:', params)
+      }
+    }
+
+    // Fallback to search params if no hash params
+    if (!params.action && searchParams) {
+      params.action = searchParams.get('action') as 'buy' | 'send' | 'receive'
+      params.package = searchParams.get('package') as '100ml' | '200ml' | undefined
+      params.currency = searchParams.get('currency')?.toUpperCase() as 'SUI' | 'NGN' | undefined
+      params.amount = searchParams.get('amount') || undefined
+      params.recipient = searchParams.get('recipient') || undefined
+      
+      console.log('Search params found:', params)
+    }
+
+    if (!params.action) {
+      console.log('No deeplink action found')
+      return
+    }
 
     console.log('Processing deeplink:', params)
 
@@ -92,11 +114,9 @@ export default function DeeplinkHandler() {
   }, [searchParams, buildQueryString, router])
 
   useEffect(() => {
-    // Only handle deeplink if we have query parameters
-    if (searchParams && searchParams.get('action')) {
-      handleDeeplink()
-    }
-  }, [handleDeeplink, searchParams])
+    // Handle deeplink from hash or search params
+    handleDeeplink()
+  }, [handleDeeplink])
 
   return null
 }
