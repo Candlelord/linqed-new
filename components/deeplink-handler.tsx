@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSuiWallet } from '@/hooks/use-sui-wallet'
 import { toast } from 'sonner'
@@ -21,6 +21,8 @@ export default function DeeplinkHandler() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { currentAccount } = useSuiWallet()
+  const [mounted, setMounted] = useState(false)
+  const [processed, setProcessed] = useState(false)
 
   // Helper function to build query string from params
   const buildQueryString = useCallback((params: DeeplinkTransaction) => {
@@ -33,11 +35,14 @@ export default function DeeplinkHandler() {
   }, [])
 
   const handleDeeplink = useCallback(async () => {
+    if (!mounted || processed) return
+    
     // Debug logging
     console.log('=== DEEPLINK DEBUG ===')
     console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A')
     console.log('Hash:', typeof window !== 'undefined' ? window.location.hash : 'N/A')
     console.log('Search params:', searchParams?.toString())
+    console.log('Mounted:', mounted, 'Processed:', processed)
     console.log('======================')
 
     let params: DeeplinkTransaction = {
@@ -80,6 +85,7 @@ export default function DeeplinkHandler() {
     }
 
     console.log('Processing deeplink:', params)
+    setProcessed(true) // Mark as processed to prevent multiple executions
 
     // Build query string for the target page
     const queryString = buildQueryString(params)
@@ -111,12 +117,44 @@ export default function DeeplinkHandler() {
       default:
         toast.error('Unknown action: ' + params.action)
     }
-  }, [searchParams, buildQueryString, router])
+  }, [mounted, processed, searchParams, buildQueryString, router])
 
+  // Mount effect
   useEffect(() => {
-    // Handle deeplink from hash or search params
-    handleDeeplink()
-  }, [handleDeeplink])
+    setMounted(true)
+  }, [])
+
+  // Hash change listener
+  useEffect(() => {
+    if (!mounted) return
+
+    const handleHashChange = () => {
+      console.log('Hash changed, resetting processed state')
+      setProcessed(false)
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [mounted])
+
+  // Main deeplink handler
+  useEffect(() => {
+    if (!mounted) return
+    
+    // Small delay to ensure everything is ready
+    const timer = setTimeout(() => {
+      handleDeeplink()
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [mounted, handleDeeplink])
+
+  // Reset processed state when search params change
+  useEffect(() => {
+    if (searchParams?.toString()) {
+      setProcessed(false)
+    }
+  }, [searchParams])
 
   return null
 }
