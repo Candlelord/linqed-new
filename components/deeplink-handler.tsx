@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useCallback, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, useCallback, useState, useRef } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useSuiWallet } from '@/hooks/use-sui-wallet'
 import { toast } from 'sonner'
 
@@ -17,12 +17,17 @@ interface DeeplinkTransaction {
   recipient?: string
 }
 
+// Global flag to prevent multiple handlers from running
+let globalProcessingFlag = false
+
 export default function DeeplinkHandler() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   const { currentAccount } = useSuiWallet()
   const [mounted, setMounted] = useState(false)
-  const [processed, setProcessed] = useState(false)
+  const processedRef = useRef(new Set<string>())
+  const timeoutRef = useRef<NodeJS.Timeout>()
 
   // Helper function to build query string from params
   const buildQueryString = useCallback((params: DeeplinkTransaction) => {
@@ -35,15 +40,12 @@ export default function DeeplinkHandler() {
   }, [])
 
   const handleDeeplink = useCallback(async () => {
-    if (!mounted || processed) return
+    if (!mounted || globalProcessingFlag) return
     
-    // Debug logging
-    console.log('=== DEEPLINK DEBUG ===')
-    console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A')
-    console.log('Hash:', typeof window !== 'undefined' ? window.location.hash : 'N/A')
-    console.log('Search params:', searchParams?.toString())
-    console.log('Mounted:', mounted, 'Processed:', processed)
-    console.log('======================')
+    // Skip if we're already on a target page (prevent loops)
+    if (pathname.startsWith('/buy') || pathname.startsWith('/send') || pathname.startsWith('/receive')) {
+      return
+    }
 
     let params: DeeplinkTransaction = {
       action: null as any,
@@ -63,8 +65,6 @@ export default function DeeplinkHandler() {
         params.currency = hashParams.get('currency')?.toUpperCase() as 'SUI' | 'NGN' | undefined
         params.amount = hashParams.get('amount') || undefined
         params.recipient = hashParams.get('recipient') || undefined
-        
-        console.log('Hash params found:', params)
       }
     }
 
@@ -75,49 +75,97 @@ export default function DeeplinkHandler() {
       params.currency = searchParams.get('currency')?.toUpperCase() as 'SUI' | 'NGN' | undefined
       params.amount = searchParams.get('amount') || undefined
       params.recipient = searchParams.get('recipient') || undefined
-      
-      console.log('Search params found:', params)
     }
 
     if (!params.action) {
-      console.log('No deeplink action found')
       return
     }
 
+    // Create a unique key for this deeplink to prevent duplicate processing
+    const deeplinkKey = `${params.action}-${params.amount || ''}-${params.currency || ''}-${params.recipient || ''}-${params.package || ''}`
+    
+    if (processedRef.current.has(deeplinkKey)) {
+      return
+    }
+
+    // Set global flag to prevent other handlers
+    globalProcessingFlag = true
+    processedRef.current.add(deeplinkKey)
+
     console.log('Processing deeplink:', params)
-    setProcessed(true) // Mark as processed to prevent multiple executions
+
+    // Check if wallet is connected before processing deeplink
+    if (!currentAccount) {
+      console.log('Wallet not connected, showing connection prompt')
+      toast.info('Please connect your wallet to continue')
+      // Reset flags to allow retry after connection
+      globalProcessingFlag = false
+      processedRef.current.delete(deeplinkKey)
+      return
+    }
 
     // Build query string for the target page
     const queryString = buildQueryString(params)
 
-    switch (params.action) {
-      case 'buy': {
-        // Navigate to buy page with prefilled data
-        const url = queryString ? `/buy?${queryString}` : '/buy'
-        router.push(url)
-        toast.success('Redirected to buy page')
-        break
-      }
+    try {
+      switch (params.action) {
+        case 'buy': {
+          const url = queryString ? `/buy?${queryString}` : '/buy'
+          await router.push(url)
+          toast.success('Redirected to buy page')
+          
+          // Store deeplink completion info for post-action redirect
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('deeplink-completed', JSON.stringify({
+              action: 'buy',
+              timestamp: Date.now(),
+              shouldRedirectHome: true
+            }))
+          }
+          break
+        }
 
-      case 'send': {
-        // Navigate to send page with prefilled data
-        const url = queryString ? `/send?${queryString}` : '/send'
-        router.push(url)
-        toast.success('Redirected to send page')
-        break
-      }
+        case 'send': {
+          const url = queryString ? `/send?${queryString}` : '/send'
+          await router.push(url)
+          toast.success('Redirected to send page')
+          
+          // Store deeplink completion info for post-action redirect
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('deeplink-completed', JSON.stringify({
+              action: 'send',
+              timestamp: Date.now(),
+              shouldRedirectHome: true
+            }))
+          }
+          break
+        }
 
-      case 'receive': {
-        // Navigate to receive page
-        router.push('/receive')
-        toast.success('Redirected to receive page')
-        break
-      }
+        case 'receive': {
+          await router.push('/receive')
+          toast.success('Redirected to receive page')
+          
+          // Store deeplink completion info for post-action redirect
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('deeplink-completed', JSON.stringify({
+              action: 'receive',
+              timestamp: Date.now(),
+              shouldRedirectHome: true
+            }))
+          }
+          break
+        }
 
-      default:
-        toast.error('Unknown action: ' + params.action)
+        default:
+          toast.error('Unknown action: ' + params.action)
+      }
+    } finally {
+      // Reset global flag after a delay to allow navigation to complete
+      setTimeout(() => {
+        globalProcessingFlag = false
+      }, 1000)
     }
-  }, [mounted, processed, searchParams, buildQueryString, router])
+  }, [mounted, searchParams, buildQueryString, router, pathname, currentAccount])
 
   // Mount effect
   useEffect(() => {
@@ -129,32 +177,62 @@ export default function DeeplinkHandler() {
     if (!mounted) return
 
     const handleHashChange = () => {
-      console.log('Hash changed, resetting processed state')
-      setProcessed(false)
+      console.log('Hash changed, clearing processed cache')
+      processedRef.current.clear()
+      globalProcessingFlag = false
     }
 
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [mounted])
 
-  // Main deeplink handler
+  // Main deeplink handler with debouncing
   useEffect(() => {
     if (!mounted) return
     
-    // Small delay to ensure everything is ready
-    const timer = setTimeout(() => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    
+    // Debounce the deeplink handling to prevent rapid-fire executions
+    timeoutRef.current = setTimeout(() => {
       handleDeeplink()
-    }, 100)
+    }, 150)
 
-    return () => clearTimeout(timer)
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [mounted, handleDeeplink])
 
   // Reset processed state when search params change
   useEffect(() => {
     if (searchParams?.toString()) {
-      setProcessed(false)
+      processedRef.current.clear()
+      globalProcessingFlag = false
     }
   }, [searchParams])
+
+  // Reset processed state when wallet connection changes
+  useEffect(() => {
+    if (currentAccount) {
+      // Wallet connected, clear processed cache to allow deeplink retry
+      processedRef.current.clear()
+      globalProcessingFlag = false
+    }
+  }, [currentAccount])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      globalProcessingFlag = false
+    }
+  }, [])
 
   return null
 }

@@ -7,6 +7,7 @@ import './globals.css'
 import { SuiProviders } from '@/components/sui-providers'
 import { Providers } from './providers'
 import DeeplinkHandler from '@/components/deeplink-handler'
+import PostActionRedirect from '@/components/post-action-redirect'
 
 export const metadata: Metadata = {
   title: 'SUI Wallet App',
@@ -36,6 +37,7 @@ html {
             {children}
             <Suspense>
               <DeeplinkHandler />
+              <PostActionRedirect />
             </Suspense>
           </SuiProviders>
         </Providers>
